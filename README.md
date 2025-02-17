@@ -1,1 +1,1 @@
-# CS5033P1
+# CS 5033 (Machine Learning) Project 1
