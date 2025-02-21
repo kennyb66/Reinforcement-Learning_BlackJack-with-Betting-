@@ -72,7 +72,7 @@ class BlackjackAgent:
         
 # hyperparameters
 learning_rate = 0.01
-n_episodes = 100_000
+n_episodes = 1_000_000
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1
@@ -89,24 +89,35 @@ agent = BlackjackAgent(
 )
 
 from tqdm import tqdm
-
+wins = 0
+draws = 0
+losses = 0
 for episode in tqdm(range(n_episodes)):
     obs, info = env.reset()
     done = False
 
-    # play one episode
     while not done:
-        action = agent.get_action(obs)
-        next_obs, reward, terminated, truncated, info = env.step(action)
+        action = agent.get_action(obs)  # Choose action
+        next_obs, reward, terminated, truncated, info = env.step(action)  # Take step
 
-        # update the agent
+        # ✅ Use Gym's default rewards
+        if terminated:
+            if reward == 1:
+                wins += 1
+            elif reward == -1:
+                losses += 1
+            else:
+                draws += 1
+
+        # ✅ Update Q-values using Gym's reward
         agent.update(obs, action, reward, terminated, next_obs)
 
-        # update if the environment is done and the current obs
         done = terminated or truncated
-        obs = next_obs
+        obs = next_obs  
 
     agent.decay_epsilon()
+
+
     
 from matplotlib import pyplot as plt
 # visualize the episode rewards, episode length and training error in one figure
@@ -131,3 +142,7 @@ axs[2].set_ylabel("Temporal Difference")
 
 plt.tight_layout()
 plt.show()
+
+# Print final results
+print(f"Wins: {wins}, Losses: {losses}, Draws: {draws}")
+print(f"Win Percentage: {(wins / (wins + losses + draws)) * 100:.2f}%")
