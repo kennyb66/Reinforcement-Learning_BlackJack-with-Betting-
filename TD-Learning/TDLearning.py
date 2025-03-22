@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 class BlackjackAgent:
     def __init__(self, env, learning_rate, epsilon_start, epsilon_final, decay_rate, discount_factor=0.95):
         self.env = env
-        self.q_values = defaultdict(lambda: np.zeros(2))  # Two actions: hit (0), stand (1) - removed double down
+        self.q_values = defaultdict(lambda: np.zeros(2))  # Two actions: hit (0), stand (1)
         self.lr = learning_rate
         self.discount_factor = discount_factor
 
         # Epsilon parameters
         self.epsilon_start = epsilon_start
         self.epsilon_final = epsilon_final
-        self.decay_rate = decay_rate  # Now used for logarithmic decay
+        self.decay_rate = decay_rate
         self.episode = 0
         self.epsilon = epsilon_start
         
@@ -35,10 +35,10 @@ class BlackjackAgent:
         reward: float,
         terminated: bool,
         next_obs: tuple[int, int, bool],
-        next_action: int,
     ):
-        """Updates Q-value using SARSA update rule."""
-        future_q_value = (not terminated) * self.q_values[next_obs][next_action]
+        """Updates Q-value using TD(0) update rule."""
+        # Get the maximum Q-value for the next state
+        future_q_value = (not terminated) * np.max(self.q_values[next_obs])
         temporal_difference = (
             reward + self.discount_factor * future_q_value - self.q_values[obs][action]
         )
@@ -59,10 +59,10 @@ learning_rate = 0.01
 n_episodes = 10_000_000
 start_epsilon = 1.0
 final_epsilon = 0.001
-decay_rate = 0.0001  
+decay_rate = 0.0001 
 
 # Initialize environment and agent
-env = gym.make("Blackjack-v1", sab=False)
+env = gym.make("Blackjack-v1", sab=True)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 agent = BlackjackAgent(
@@ -83,14 +83,9 @@ for episode in tqdm(range(n_episodes)):
     obs, info = env.reset()
     done = False
 
-    # Get initial action
-    action = agent.get_action(obs)
-
     while not done:
+        action = agent.get_action(obs)
         next_obs, reward, terminated, truncated, info = env.step(action)
-
-        # Get next action for SARSA
-        next_action = agent.get_action(next_obs)
 
         # Track wins, losses, draws
         if terminated:
@@ -101,12 +96,11 @@ for episode in tqdm(range(n_episodes)):
             else:
                 draws += 1
 
-        # SARSA update
-        agent.update(obs, action, reward, terminated, next_obs, next_action)
+        # TD(0) update
+        agent.update(obs, action, reward, terminated, next_obs)
 
         done = terminated or truncated
         obs = next_obs
-        action = next_action
 
     agent.decay_epsilon()
 
